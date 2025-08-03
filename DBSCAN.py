@@ -1,0 +1,48 @@
+import numpy as np
+from collections import deque
+
+def euclidean(p1, p2):
+    return np.linalg.norm(p1 - p2)
+
+class DBSCAN:
+    def __init__(self, eps=0.5, min_samples=5):
+        self.eps = eps
+        self.min_samples = min_samples
+
+    def fit(self, X):
+        self.X = np.array(X)
+        self.labels = [-1] * len(X)  # -1 означает шум
+        cluster_id = 0
+
+        for i in range(len(X)):
+            if self.labels[i] != -1:
+                continue
+            neighbors = self.region_query(i)
+            if len(neighbors) < self.min_samples:
+                self.labels[i] = -1  # шум
+            else:
+                self.expand_cluster(i, neighbors, cluster_id)
+                cluster_id += 1
+
+        return self.labels
+
+    def region_query(self, point_idx):
+        neighbors = []
+        for i in range(len(self.X)):
+            if euclidean(self.X[point_idx], self.X[i]) <= self.eps:
+                neighbors.append(i)
+        return neighbors
+
+    def expand_cluster(self, point_idx, neighbors, cluster_id):
+        self.labels[point_idx] = cluster_id
+        queue = deque(neighbors)
+        while queue:
+            current_point = queue.popleft()
+            if self.labels[current_point] == -1:
+                self.labels[current_point] = cluster_id
+            if self.labels[current_point] != -1:
+                continue
+            self.labels[current_point] = cluster_id
+            current_neighbors = self.region_query(current_point)
+            if len(current_neighbors) >= self.min_samples:
+                queue.extend(current_neighbors)
